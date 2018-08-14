@@ -1,0 +1,17 @@
+version: '3'
+services:
+  broker1:
+    build: qpid-broker/.
+    container_name: broker1
+    ports:
+     - "28080:80"
+  broker2:
+    build: qpid-broker/.
+    container_name: broker2
+    ports:
+     - "18080:80"
+  dispatcher:
+    build: qpid-dispatch/.
+    container_name: dispatcher
+    ports:
+     - "5672:5672"

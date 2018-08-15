@@ -38,19 +38,22 @@ public class RequestResponseReplyToTest {
 
             try (Session session1 = connection.createSession()) {
                 TemporaryQueue responseQueue = session1.createTemporaryQueue();
+                LOGGER.info("Temporary Response Queue: " + responseQueue);
 
                 try (MessageConsumer responseConsumer = session1.createConsumer(responseQueue)) {
+                    LOGGER.info("Temporary Response Queue Consumer Created: " + responseQueue);
 
                     try (MessageProducer requestProducer = session1.createProducer(queue)) {
                         TextMessage message = session1.createTextMessage("Hello world!");
                         message.setJMSReplyTo(responseQueue);
                         requestProducer.send(message);
-                        LOGGER.info("Sent request:");
+                        LOGGER.info(String.format("Sent request: %s", queue));
                         logDetails(message);
                     }
 
                     try (Session session2 = connection.createSession()) {
                         try (MessageConsumer requestConsumer = session2.createConsumer(queue)) {
+                            LOGGER.info("Request Queue Consumer Created: " + queue);
                             TextMessage message1 = (TextMessage) requestConsumer.receive(10000);
                             if (message1 == null) {
                                 throw new RuntimeException("no message received");
@@ -60,15 +63,17 @@ public class RequestResponseReplyToTest {
                             logDetails(message1);
 
                             Destination replyTo = message1.getJMSReplyTo();
-                            // Destination replyTo = responseQueue;
+                            // Destination replyTo = responseQueue; // TEST by setting response queue directly
                             try (MessageProducer messageProducer = session2.createProducer(replyTo)) {
+                                LOGGER.info("Temporary Response Queue Producer Created: " + replyTo);
                                 TextMessage message = session2.createTextMessage("Hello world response!");
 
                                 LOGGER.info(String.format("Sending response: %s", replyTo));
+                                logDetails(message);
                                 messageProducer.send(message);
 
                                 LOGGER.info("Sent response:");
-                                logDetails(message1);
+                                logDetails(message);
                             }
                         }
 

@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
-import javax.jms.DeliveryMode;
 import javax.jms.Destination;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
@@ -55,10 +54,10 @@ public class RequestResponseReplyToTest {
                     responseConsumer.setMessageListener(receivedResponse::set);
                     LOGGER.info("Temporary Response Queue Consumer Created: " + responseQueue);
 
-                    new Thread(this::responseHandler, "Response Handler").start();
+                    new Thread(this::requestHandler, "Response Handler").start();
                     Thread.sleep(2000);
 
-                    sendRequest(session1, responseQueue);
+                    sendRequest(session1, requestQueue, responseQueue);
 
                     Thread.sleep(10000);
                     if (receivedResponse.get() == null) {
@@ -84,10 +83,10 @@ public class RequestResponseReplyToTest {
                 try (MessageConsumer responseConsumer = session1.createConsumer(responseQueue)) {
                     LOGGER.info("Temporary Response Queue Consumer Created: " + responseQueue);
 
-                    new Thread(this::responseHandler, "Response Handler").start();
-                    Thread.sleep(2000);
+                    new Thread(this::requestHandler, "Response Handler").start();
+                    Thread.sleep(1000);
 
-                    sendRequest(session1, responseQueue);
+                    sendRequest(session1, requestQueue, responseQueue);
 
                     Message receivedResponse = responseConsumer.receive(10000);
                     if (receivedResponse == null) {
@@ -100,18 +99,18 @@ public class RequestResponseReplyToTest {
         }
     }
 
-    private void sendRequest(Session session, TemporaryQueue responseQueue) throws JMSException {
-        try (MessageProducer requestProducer = session.createProducer(requestQueue)) {
+    public static void sendRequest(Session session, Destination destination, Destination replyTo) throws JMSException {
+        try (MessageProducer requestProducer = session.createProducer(destination)) {
             TextMessage message = session.createTextMessage("Hello world!");
-            message.setJMSReplyTo(responseQueue);
+            message.setJMSReplyTo(replyTo);
             message.setJMSExpiration(10000l);
             requestProducer.send(message);
-            LOGGER.info(String.format("Sent request: %s", requestQueue));
+            LOGGER.info(String.format("Sent request: %s", destination));
             logDetails(message);
         }
     }
 
-    private void responseHandler() {
+    private void requestHandler() {
         try {
             try (Connection connection = connectionFactory.createConnection()) {
                 connection.setExceptionListener(new MyExceptionListener());
@@ -128,8 +127,6 @@ public class RequestResponseReplyToTest {
                         logDetails(receivedMessage);
 
                         Destination replyTo = receivedMessage.getJMSReplyTo();
-                        // TEST by setting response queue directly
-                        // Destination replyTo = responseQueue;
                         try (MessageProducer messageProducer = session2.createProducer(replyTo)) {
                             LOGGER.info("Temporary Response Queue Producer Created: " + replyTo);
                             TextMessage message = session2.createTextMessage("Hello world response!");
@@ -150,7 +147,7 @@ public class RequestResponseReplyToTest {
         }
     }
 
-    private void logDetails(Message receivedMessage) throws JMSException {
+    private static void logDetails(Message receivedMessage) throws JMSException {
         LOGGER.info(String.format("\tMessageID:%s", receivedMessage.getJMSMessageID()));
         LOGGER.info(String.format("\tCorrelationID:%s", receivedMessage.getJMSCorrelationID()));
         LOGGER.info(String.format("\tTimestamp:%s", receivedMessage.getJMSTimestamp()));

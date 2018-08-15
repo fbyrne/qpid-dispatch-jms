@@ -1,4 +1,5 @@
 FROM scholzj/qpid-dispatch:1.3.0
+# FROM scholzj/qpid-dispatch:0.7.0
 
 ENV QDROUTERD_CONFIG_FILE /var/lib/qdrouterd/etc/qdrouterd-custom.conf
 

@@ -4,14 +4,23 @@ services:
     build: qpid-broker/.
     container_name: broker1
     ports:
-     - "28080:80"
+     - "18080:80"
   broker2:
     build: qpid-broker/.
     container_name: broker2
     ports:
-     - "18080:80"
-  dispatcher:
+     - "28080:80"
+  dispatcher1:
     build: qpid-dispatch/.
-    container_name: dispatcher
+    container_name: dispatcher1
+    environment:
+      - QDROUTERD_CONFIG_FILE=/var/lib/qdrouterd/etc/qdrouterd-1.conf
     ports:
      - "5672:5672"
+  dispatcher2:
+    build: qpid-dispatch/.
+    container_name: dispatcher2
+    environment:
+      - QDROUTERD_CONFIG_FILE=/var/lib/qdrouterd/etc/qdrouterd-2.conf
+    ports:
+     - "5673:5672"

@@ -22,7 +22,7 @@ public class JmsSendTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JmsSendTest.class);
 
-    private ConnectionFactory connectionFactory;
+    private ConnectionFactory requestConnectionFactory;
     private Destination requestQueue;
 
     @BeforeEach
@@ -32,13 +32,13 @@ public class JmsSendTest {
         // up automatically by the InitialContext constructor.
         Context context = new InitialContext();
 
-        this.connectionFactory = (ConnectionFactory) context.lookup("dispatcherFactoryLookup");
+        this.requestConnectionFactory = (ConnectionFactory) context.lookup("dispatcher1FactoryLookup");
         this.requestQueue = (Destination) context.lookup("requests");
     }
 
     @Test
     public void send_message_to_non_existing_queue() throws Exception {
-        try (Connection connection = connectionFactory.createConnection()) {
+        try (Connection connection = requestConnectionFactory.createConnection()) {
             connection.setExceptionListener(new MyExceptionListener());
             connection.start();
 

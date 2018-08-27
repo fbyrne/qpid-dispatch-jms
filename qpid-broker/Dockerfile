@@ -22,5 +22,4 @@ RUN wget -q http://www-eu.apache.org/dist/qpid/broker-j/$QPID_VERSION/binaries/a
 EXPOSE 5672
 EXPOSE 80
 
-#ENTRYPOINT ["ls", "$QPID_HOME"]
 ENTRYPOINT "$QPID_HOME/bin/qpid-server" -prop "qpid.amqp_port=5672" -prop "qpid.http_port=80"

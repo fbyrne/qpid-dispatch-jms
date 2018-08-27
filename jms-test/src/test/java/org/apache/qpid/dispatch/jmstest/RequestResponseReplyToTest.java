@@ -25,7 +25,8 @@ public class RequestResponseReplyToTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestResponseReplyToTest.class);
 
-    private ConnectionFactory connectionFactory;
+    private ConnectionFactory publisherConnectionFactory;
+    private ConnectionFactory subscriberConnectionFactory;
     private Destination requestQueue;
 
     @BeforeEach
@@ -35,13 +36,14 @@ public class RequestResponseReplyToTest {
         // up automatically by the InitialContext constructor.
         Context context = new InitialContext();
 
-        this.connectionFactory = (ConnectionFactory) context.lookup("dispatcherFactoryLookup");
+        this.publisherConnectionFactory = (ConnectionFactory) context.lookup("dispatcher1FactoryLookup");
+        this.subscriberConnectionFactory = (ConnectionFactory) context.lookup("dispatcher2FactoryLookup");
         this.requestQueue = (Destination) context.lookup("requests");
     }
 
     @Test
     public void request_response_with_reply_to_listener() throws Exception {
-        try (Connection connection = connectionFactory.createConnection()) {
+        try (Connection connection = publisherConnectionFactory.createConnection()) {
             connection.setExceptionListener(new MyExceptionListener());
             connection.start();
 
@@ -72,7 +74,7 @@ public class RequestResponseReplyToTest {
 
     @Test
     public void request_response_with_reply_to_receive() throws Exception {
-        try (Connection connection = connectionFactory.createConnection()) {
+        try (Connection connection = publisherConnectionFactory.createConnection()) {
             connection.setExceptionListener(new MyExceptionListener());
             connection.start();
 
@@ -112,7 +114,7 @@ public class RequestResponseReplyToTest {
 
     private void requestHandler() {
         try {
-            try (Connection connection = connectionFactory.createConnection()) {
+            try (Connection connection = subscriberConnectionFactory.createConnection()) {
                 connection.setExceptionListener(new MyExceptionListener());
                 connection.start();
                 try (Session session2 = connection.createSession()) {

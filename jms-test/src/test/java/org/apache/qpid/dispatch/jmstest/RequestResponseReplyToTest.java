@@ -19,6 +19,8 @@ import javax.jms.TextMessage;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import java.util.concurrent.Exchanger;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class RequestResponseReplyToTest {
@@ -52,21 +54,25 @@ public class RequestResponseReplyToTest {
                 LOGGER.info("Temporary Response Queue: " + responseQueue);
 
                 try (MessageConsumer responseConsumer = session1.createConsumer(responseQueue)) {
-                    AtomicReference<Message> receivedResponse = new AtomicReference<>();
-                    responseConsumer.setMessageListener(receivedResponse::set);
+                    Exchanger<Message> exchanger = new Exchanger<>();
+                    responseConsumer.setMessageListener(x -> {
+                        try {
+                            exchanger.exchange(x);
+                        } catch (InterruptedException e) {
+                        }
+                    });
                     LOGGER.info("Temporary Response Queue Consumer Created: " + responseQueue);
 
                     new Thread(this::requestHandler, "Response Handler").start();
-                    Thread.sleep(2000);
 
                     sendRequest(session1, requestQueue, responseQueue);
 
-                    Thread.sleep(10000);
-                    if (receivedResponse.get() == null) {
+                    Message response = exchanger.exchange(null, 20, TimeUnit.SECONDS);
+                    if (response == null) {
                         throw new RuntimeException("no message received!");
                     }
                     LOGGER.info("Received response:");
-                    logDetails(receivedResponse.get());
+                    logDetails(response);
                 }
             }
         }
@@ -117,6 +123,7 @@ public class RequestResponseReplyToTest {
             try (Connection connection = subscriberConnectionFactory.createConnection()) {
                 connection.setExceptionListener(new MyExceptionListener());
                 connection.start();
+
                 try (Session session2 = connection.createSession()) {
                     try (MessageConsumer requestConsumer = session2.createConsumer(requestQueue)) {
                         LOGGER.info("Request Queue Consumer Created: " + requestQueue);
